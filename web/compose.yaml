@@ -1,0 +1,14 @@
+services:
+  web:
+    build: .
+    ports:
+      - mode: ingress
+        target: 5000
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=production
+    deploy:
+      replicas: 1
+      resources:
+        reservations:
+          memory: 512M
