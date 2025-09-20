@@ -157,7 +157,7 @@
         showConfirmModal(
             'Are you sure you want to clear the cart? This action cannot be undone.',
             () => {
-                window.location.href = "{{ url_for('clear_cart') }}";
+                window.location.href = "{{ url_for('clear_cart_route') }}";
             },
             'Clear Cart'
         );

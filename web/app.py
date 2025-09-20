@@ -1,11 +1,11 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 import csv
 import datetime
 import os
 from typing import List, Dict, Optional
 
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-here'
+app.secret_key = 'walmart-shopping-system-secret-key-2025'
 
 class ShoppingItem:
     TAX_RATE = 0.1044  # 10.44% tax rate
@@ -163,11 +163,37 @@ class ShoppingCart:
         self.clear_cart()
         return transaction_id
 
-# Global cart instance
-cart = ShoppingCart()
+# Global transaction manager instance (this can be shared)
+transaction_manager = TransactionManager()
+
+def get_cart():
+    """Get the cart instance for the current session"""
+    if 'cart_items' not in session:
+        session['cart_items'] = []
+
+    # Create a temporary cart and populate it with session data
+    cart = ShoppingCart()
+    cart.transaction_manager = transaction_manager
+
+    # Reconstruct cart items from session
+    for item_data in session['cart_items']:
+        item = ShoppingItem(
+            name=item_data['name'],
+            price=item_data['price'],
+            quantity=item_data['quantity']
+        )
+        cart.items.append(item)
+
+    return cart
+
+def save_cart(cart):
+    """Save the cart to the session"""
+    session['cart_items'] = [item.to_dict() for item in cart.items]
+    session.modified = True
 
 @app.route('/')
 def index():
+    cart = get_cart()
     return render_template('index.html', cart_items=[item.to_dict() for item in cart.items],
                          cart_total=cart.get_total(), cart_subtotal=cart.get_subtotal(),
                          cart_tax=cart.get_tax())
@@ -226,8 +252,10 @@ def add_item():
             flash('Quantity must be 1000 or less', 'error')
             return redirect(url_for('index'))
 
+        cart = get_cart()
         item = ShoppingItem(name, price, quantity)
         cart.add_item(item)
+        save_cart(cart)
         flash(f'Added {quantity} x {name} to cart', 'success')
 
     except Exception as e:
@@ -245,7 +273,9 @@ def remove_item(item_name):
 
         item_name = item_name.strip()
 
+        cart = get_cart()
         if cart.remove_item(item_name):
+            save_cart(cart)
             flash(f'Removed {item_name} from cart', 'success')
         else:
             flash('Item not found in cart', 'error')
@@ -284,7 +314,9 @@ def update_quantity():
             flash('Quantity must be 1000 or less', 'error')
             return redirect(url_for('index'))
 
+        cart = get_cart()
         if cart.update_item_quantity(item_name, new_quantity):
+            save_cart(cart)
             if new_quantity == 0:
                 flash(f'Removed {item_name} from cart', 'success')
             else:
@@ -298,19 +330,23 @@ def update_quantity():
     return redirect(url_for('index'))
 
 @app.route('/clear_cart')
-def clear_cart():
+def clear_cart_route():
+    cart = get_cart()
     cart.clear_cart()
+    save_cart(cart)
     flash('Cart cleared', 'success')
     return redirect(url_for('index'))
 
 @app.route('/checkout', methods=['POST'])
 def checkout():
+    cart = get_cart()
     if not cart.items:
         flash('Cart is empty', 'error')
         return redirect(url_for('index'))
 
     try:
         transaction_id = cart.complete_transaction()
+        save_cart(cart)  # Cart should be empty after transaction
         flash(f'Transaction completed! Transaction ID: {transaction_id}', 'success')
     except Exception as e:
         flash(f'Failed to complete transaction: {str(e)}', 'error')
@@ -319,7 +355,7 @@ def checkout():
 
 @app.route('/receipts')
 def receipts():
-    transactions = cart.transaction_manager.get_all_transactions()
+    transactions = transaction_manager.get_all_transactions()
 
     # Group transactions by ID and calculate totals
     unique_transactions = {}
@@ -360,7 +396,7 @@ def view_receipt(transaction_id):
             flash('Invalid transaction ID format', 'error')
             return redirect(url_for('receipts'))
 
-        transactions = cart.transaction_manager.get_transaction_by_id(transaction_id)
+        transactions = transaction_manager.get_transaction_by_id(transaction_id)
         if not transactions:
             flash('Transaction not found', 'error')
             return redirect(url_for('receipts'))
@@ -391,7 +427,7 @@ def delete_transaction(transaction_id):
             flash('Invalid transaction ID format', 'error')
             return redirect(url_for('receipts'))
 
-        if cart.transaction_manager.delete_transaction(transaction_id):
+        if transaction_manager.delete_transaction(transaction_id):
             flash('Transaction deleted successfully', 'success')
         else:
             flash('Failed to delete transaction or transaction not found', 'error')
