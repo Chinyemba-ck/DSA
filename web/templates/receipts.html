@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Receipts - Walmart Shopping System{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header walmart-blue text-white">
+        <h5 class="mb-0"><i class="fas fa-receipt me-2"></i>Transaction History</h5>
+    </div>
+    <div class="card-body">
+        {% if transactions %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Transaction ID</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Total</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transaction in transactions %}
+                    <tr>
+                        <td>
+                            <code>{{ transaction.id }}</code>
+                        </td>
+                        <td>{{ transaction.date }}</td>
+                        <td>{{ transaction.time }}</td>
+                        <td><strong>${{ "%.2f"|format(transaction.total) }}</strong></td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="{{ url_for('view_receipt', transaction_id=transaction.id) }}"
+                                   class="btn btn-outline-primary">
+                                    <i class="fas fa-eye me-1"></i>View
+                                </a>
+                                <button class="btn btn-outline-danger"
+                                        onclick="confirmDeleteTransaction('{{ transaction.id }}')">
+                                    <i class="fas fa-trash me-1"></i>Delete
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-receipt fa-4x text-muted mb-3"></i>
+            <h4 class="text-muted">No transactions found</h4>
+            <p class="text-muted">Complete some transactions to see them here.</p>
+            <a href="{{ url_for('index') }}" class="btn btn-walmart">
+                <i class="fas fa-shopping-cart me-2"></i>Start Shopping
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function confirmDeleteTransaction(transactionId) {
+        showConfirmModal(
+            `Are you sure you want to delete transaction ${transactionId}? This action cannot be undone.`,
+            () => {
+                window.location.href = "{{ url_for('delete_transaction', transaction_id='PLACEHOLDER') }}".replace('PLACEHOLDER', encodeURIComponent(transactionId));
+            },
+            'Delete Transaction'
+        );
+    }
+</script>
+{% endblock %}

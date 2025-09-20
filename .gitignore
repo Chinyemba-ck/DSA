@@ -1,0 +1,45 @@
+# Claude Code files
+.claude/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+env/
+ENV/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Problematic directories
+langchain-ask-csv-main/
+
+# Large zip files
+*.zip
+
+# CSV data files (optional - uncomment if you don't want to commit transaction data)
+# *.csv
+
+# Logs
+*.log
+
+# Flask instance folder
+instance/
+
+# Flask cache
+.webassets-cache
